@@ -139,13 +139,15 @@ class ReviewApp(App):
         Binding("d", "mark_delete", "Delete", priority=True),
         Binding("enter", "apply", "Apply actions", priority=True),
         Binding("f", "filter", "Cycle filter", priority=True),
+        Binding("n", "toggle_dry_run", "Dry run", priority=True),
         Binding("q", "quit", "Quit"),
     ]
 
-    def __init__(self, projects: list[dict], archive_dir: Path) -> None:
+    def __init__(self, projects: list[dict], archive_dir: Path, dry_run: bool = False) -> None:
         super().__init__()
         self.projects = projects
         self.archive_dir = archive_dir
+        self.dry_run = dry_run
         self.current_filter = "all"  # all, keep, archive, delete
         self.title = "Treasure or Trash"
 
@@ -210,12 +212,14 @@ class ReviewApp(App):
             counts[p.get("action", "keep")] += 1
         bar = self.query_one("#stats-bar", Static)
         total = len(self.projects)
+        dry_label = "  [bold magenta]DRY RUN[/]" if self.dry_run else ""
         bar.update(
             f" {total} projects  |  "
             f"[green]keep: {counts['keep']}[/]  "
             f"[yellow]archive: {counts['archive']}[/]  "
             f"[red]delete: {counts['delete']}[/]  "
             f"[dim]filter: {self.current_filter}[/]"
+            f"{dry_label}"
         )
 
     def _mark_selected(self, action: str) -> None:
@@ -250,6 +254,12 @@ class ReviewApp(App):
     def action_mark_delete(self) -> None:
         self._mark_selected("delete")
 
+    def action_toggle_dry_run(self) -> None:
+        self.dry_run = not self.dry_run
+        state = "ON" if self.dry_run else "OFF"
+        self.notify(f"Dry run: {state}", severity="information", timeout=3)
+        self._update_stats()
+
     def action_filter(self) -> None:
         filters = ["all", "keep", "archive", "delete"]
         idx = filters.index(self.current_filter)
@@ -267,12 +277,15 @@ class ReviewApp(App):
             return
 
         lines = []
+        if self.dry_run:
+            lines.append("[bold magenta]DRY RUN — no projects will be removed[/]\n")
         if to_archive:
             lines.append(f"[yellow]Archive {len(to_archive)} project(s):[/]")
             for p in to_archive:
                 lines.append(f"  → {p['name']}")
         if to_delete:
-            lines.append(f"[red]DELETE {len(to_delete)} project(s):[/]")
+            action_word = "Would DELETE" if self.dry_run else "DELETE"
+            lines.append(f"[red]{action_word} {len(to_delete)} project(s):[/]")
             for p in to_delete:
                 lines.append(f"  ✕ {p['name']}")
         lines.append(f"\nArchive destination: {self.archive_dir}")
@@ -300,9 +313,11 @@ class ReviewApp(App):
                 continue
             try:
                 archive_path = self.archive_dir / project["name"]
-                # shutil.make_archive wants the base name without extension
                 shutil.make_archive(str(archive_path), "zip", project_path.parent, project_path.name)
-                shutil.rmtree(project_path)
+                if self.dry_run:
+                    self.notify(f"[dry run] Would remove {project_path}", severity="information", timeout=5)
+                else:
+                    shutil.rmtree(project_path)
                 archived += 1
             except Exception as e:
                 errors.append(f"Archive failed for {project['name']}: {e}")
@@ -312,22 +327,30 @@ class ReviewApp(App):
             if not project_path.exists():
                 errors.append(f"Not found: {project['name']}")
                 continue
-            try:
-                shutil.rmtree(project_path)
+            if self.dry_run:
+                self.notify(f"[dry run] Would delete {project_path}", severity="information", timeout=5)
                 deleted += 1
-            except Exception as e:
-                errors.append(f"Delete failed for {project['name']}: {e}")
+            else:
+                try:
+                    shutil.rmtree(project_path)
+                    deleted += 1
+                except Exception as e:
+                    errors.append(f"Delete failed for {project['name']}: {e}")
 
-        # Remove actioned projects from the list
-        actioned_paths = {p["path"] for p in to_archive + to_delete}
-        self.projects = [p for p in self.projects if p["path"] not in actioned_paths or p["path"] in {
-            e.split(": ")[1] if ": " in e else "" for e in errors
-        }]
+        # In dry-run mode, don't remove projects from the list
+        if not self.dry_run:
+            actioned_paths = {p["path"] for p in to_archive + to_delete}
+            self.projects = [p for p in self.projects if p["path"] not in actioned_paths or p["path"] in {
+                e.split(": ")[1] if ": " in e else "" for e in errors
+            }]
 
         self._populate_table()
         self._update_stats()
 
-        msg = f"Done: {archived} archived, {deleted} deleted."
+        prefix = "[DRY RUN] " if self.dry_run else ""
+        msg = f"{prefix}Done: {archived} archived, {deleted} deleted."
+        if self.dry_run:
+            msg += " No projects were actually removed."
         if errors:
             msg += f" {len(errors)} error(s) — check notifications."
             for err in errors:
@@ -348,6 +371,11 @@ def main():
         "--archive-dir",
         default="~/project-archives",
         help="Directory to store archived project zips (default: ~/project-archives)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview mode — creates zip archives but won't delete any projects",
     )
 
     args = parser.parse_args()
@@ -370,7 +398,7 @@ def main():
             else:
                 p["action"] = "keep"
 
-    app = ReviewApp(projects, archive_dir)
+    app = ReviewApp(projects, archive_dir, dry_run=args.dry_run)
     app.run()
 
 
