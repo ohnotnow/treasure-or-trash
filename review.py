@@ -134,11 +134,11 @@ class ReviewApp(App):
     """
 
     BINDINGS = [
-        Binding("k", "mark_keep", "Keep"),
-        Binding("a", "mark_archive", "Archive"),
-        Binding("d", "mark_delete", "Delete"),
-        Binding("enter", "apply", "Apply actions"),
-        Binding("f", "filter", "Cycle filter"),
+        Binding("k", "mark_keep", "Keep", priority=True),
+        Binding("a", "mark_archive", "Archive", priority=True),
+        Binding("d", "mark_delete", "Delete", priority=True),
+        Binding("enter", "apply", "Apply actions", priority=True),
+        Binding("f", "filter", "Cycle filter", priority=True),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -165,6 +165,8 @@ class ReviewApp(App):
         table.add_columns("Action", "Verdict", "Name", "Type", "Cplx", "Files", "Summary")
         self._populate_table()
         self._update_stats()
+        # Initial detail panel update
+        self.set_timer(0.1, self._update_detail)
 
     def _populate_table(self) -> None:
         table = self.query_one("#project-table", DataTable)
@@ -194,7 +196,7 @@ class ReviewApp(App):
         if table.row_count == 0:
             return None
         row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-        path = str(row_key)
+        path = row_key.value
         return next((p for p in self.projects if p["path"] == path), None)
 
     def _update_detail(self) -> None:
@@ -233,6 +235,10 @@ class ReviewApp(App):
 
     @on(DataTable.RowHighlighted)
     def on_row_highlighted(self) -> None:
+        self._update_detail()
+
+    @on(DataTable.CellHighlighted)
+    def on_cell_highlighted(self) -> None:
         self._update_detail()
 
     def action_mark_keep(self) -> None:
