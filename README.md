@@ -1,14 +1,14 @@
 # Treasure or Trash
 
-I have hundreds of old code projects sitting in a directory. Most of them are half-finished experiments, tutorial follow-alongs, and "I wonder if..." ideas I never came back to. This tool points an LLM at each one, gets a quick summary and a keep/bin verdict, then gives me a terminal UI to act on the results.
+I have hundreds of old code projects sitting in a directory. Most of them are half-finished experiments, experiments, and "I wonder if..." ideas I never came back to. This tool points an LLM at each one, gets a quick summary and a keep/bin verdict, then gives you a terminal UI to act on the results.
 
 ## How it works
 
 There are two scripts:
 
-`main.py` (the scanner) walks a directory looking for Python, Go, Laravel, and Node/Bun projects. It finds them by their marker files (`go.mod`, `artisan`, `package.json`, `pyproject.toml`, etc.), guesses whether they're simple or complex based on file count, then sends a snapshot of each one to an LLM. You get back a one-line summary and a "treasure", "trash", or "unsure" verdict. Everything goes into a JSON file and a markdown report.
+`main.py` (the scanner) walks a directory looking for Python, Go, Laravel, and Node/Bun projects. It guesses whether they're simple or complex based on key file count, then sends a snapshot of each one to an LLM. You get back a one-line summary and a "treasure", "trash", or "unsure" verdict. Everything goes into a terse JSON file and a more easy to read markdown report.
 
-`review.py` (the reviewer) is a Textual TUI that loads that JSON and lets you tag each project as keep, archive, or delete. Archiving zips the project before removing it. There's a dry-run mode so you can check the zips look right before anything gets deleted.
+`review.py` is a TUI that loads that JSON and lets you tag each project as keep, archive, or delete. Archiving zips the project before removing it. There's a dry-run mode so you can check the zips look right before anything gets deleted.
 
 ## Prerequisites
 
@@ -26,15 +26,10 @@ uv sync
 
 Then create a `.env` file:
 
-```bash
-cp .env.example .env  # or just create one
-```
-
 ```
 ANTHROPIC_API_KEY=sk-ant-...
+# or whichever provider you want to use, eg, OPENAI_API_KEY, OPENROUTER_API_KEY...
 ```
-
-Using a different provider? Set the right key instead (e.g. `OPENAI_API_KEY`). Litellm sorts out the routing.
 
 ## Usage
 
@@ -92,11 +87,11 @@ Keyboard controls:
 
 ## Tests
 
-None yet. The irony of a project about cleaning up half-finished projects being itself half-finished is not lost on me.
+None yet. It's not like this is a MVP and could delete all your projects, right?  You trust me?  .... Right?
 
 ## Contributing
 
-Fork it, `uv sync`, have at it. PRs welcome.
+Fork it, `uv sync`, have at it.
 
 ## Licence
 
