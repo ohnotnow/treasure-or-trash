@@ -1,6 +1,6 @@
 # Treasure or Trash
 
-I have hundreds of old code projects sitting in a directory. Most of them are half-finished experiments, experiments, and "I wonder if..." ideas I never came back to. This tool points an LLM at each one, gets a quick summary and a keep/bin verdict, then gives you a terminal UI to act on the results.
+I have hundreds of old code projects sitting in a directory. Most of them are half-finished experiments and "I wonder if..." ideas I never came back to. This tool points an LLM at each one, gets a quick summary and a keep/bin verdict, then gives you a terminal UI to act on the results.
 
 ## How it works
 
