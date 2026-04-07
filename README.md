@@ -51,7 +51,7 @@ uv run python main.py -n 20 /path/to/your/code
 # Pick up where you left off
 uv run python main.py --resume projects.json /path/to/your/code
 
-# Use a cheaper model
+# Use a specific cheaper model (litellm style provider/model)
 uv run python main.py -m anthropic/claude-haiku-4-5-20251001 /path/to/your/code
 ```
 
