@@ -303,8 +303,8 @@ def main():
     )
     parser.add_argument(
         "-m", "--model",
-        default="anthropic/claude-sonnet-4-20250514",
-        help="LLM model to use via litellm (default: anthropic/claude-sonnet-4-20250514)",
+        default="openai/gpt-5.4-mini",
+        help="LLM model to use via litellm (default: openai/gpt-5.4-mini)",
     )
     parser.add_argument(
         "--dry-run",
